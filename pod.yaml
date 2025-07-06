@@ -17,7 +17,7 @@ metadata:
   namespace: dev-ns
 spec:
   containers:
-  - name: nginx_cont
+  - name: nginx-cont
     image: nginx:latest
     ports:
     - containerPort: 80
