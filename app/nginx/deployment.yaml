@@ -1,0 +1,48 @@
+# app/nginx/deployment.yaml
+
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: gitops-demo-ns
+  labels:
+    app.kubernetes.io/managed-by: argocd
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-gitops-demo
+  namespace: gitops-demo-ns # Deploy into our GitOps namespace
+  labels:
+    app: nginx-gitops-demo
+spec:
+  replicas: 1 # We'll change this later to demonstrate GitOps
+  selector:
+    matchLabels:
+      app: nginx-gitops-demo
+  template:
+    metadata:
+      labels:
+        app: nginx-gitops-demo
+    spec:
+      containers:
+      - name: nginx-container
+        image: nginx:1.25.0 # We'll update this version later
+        ports:
+        - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-gitops-svc
+  namespace: gitops-demo-ns # Service in the same namespace
+  labels:
+    app: nginx-gitops-demo
+spec:
+  selector:
+    app: nginx-gitops-demo
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+  type: ClusterIP # Internal service, accessible only within the cluster
