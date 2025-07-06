@@ -16,7 +16,7 @@ metadata:
   labels:
     app: nginx-gitops-demo
 spec:
-  replicas: 1 # We'll change this later to demonstrate GitOps
+  replicas: 3 # We'll change this later to demonstrate GitOps
   selector:
     matchLabels:
       app: nginx-gitops-demo
@@ -27,7 +27,7 @@ spec:
     spec:
       containers:
       - name: nginx-container
-        image: nginx:1.25.0 # We'll update this version later
+        image: nginx:1.26.0 # We'll update this version later
         ports:
         - containerPort: 80
 ---
