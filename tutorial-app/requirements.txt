@@ -1,0 +1,7 @@
+# requirements.txt
+Flask
+Flask-SQLAlchemy
+Flask-Login
+Werkzeug # Required by Flask, good to pin
+psycopg2-binary # For PostgreSQL database connection
+gunicorn

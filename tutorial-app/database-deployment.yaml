@@ -1,0 +1,61 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: database-deployment
+  namespace: my-3tier-app
+  labels:
+    app: database
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: database
+  template:
+    metadata:
+      labels:
+        app: database
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:13 # Using a public PostgreSQL image
+        ports:
+        - containerPort: 5432
+        env:
+        # Use values from the Secret for PostgreSQL
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: POSTGRES_USER
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: POSTGRES_PASSWORD
+        - name: POSTGRES_DB
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: POSTGRES_DB
+        volumeMounts: # Mount the PVC inside the container
+        - name: postgres-storage
+          mountPath: /var/lib/postgresql/data # This is the default data directory for PostgreSQL
+      volumes: # Define the volume to be used by the container
+      - name: postgres-storage
+        persistentVolumeClaim:
+          claimName: postgres-pv-claim # Reference the PVC created above
+---
+# database-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: database-service
+  namespace: my-3tier-app
+spec:
+  selector:
+    app: database
+  ports:
+  - protocol: TCP
+    port: 5432
+    targetPort: 5432
+  type: ClusterIP # Only accessible within the cluster

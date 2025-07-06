@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: node-logger
+  namespace: my-3tier-app
+  labels:
+    app: node-logger
+spec:
+  selector:
+    matchLabels:
+      app: node-logger
+  template:
+    metadata:
+      labels:
+        app: node-logger
+    spec:
+      containers:
+      - name: logger-container
+        image: busybox:latest
+        command: ["sh", "-c", "while true; do echo 'Hello from DaemonSet on node $(hostname)'; sleep 5; done"]
+      terminationGracePeriodSeconds: 30
+

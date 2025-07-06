@@ -1,0 +1,117 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flask-backend-deployment
+  namespace: my-3tier-app
+  labels:
+    app: flask-backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: flask-backend
+  template:
+    metadata:
+      labels:
+        app: flask-backend
+    spec:
+      # --- Init Containers Section ---
+      initContainers:
+      - name: init-db
+        image: vinayak4393/flask-tutorial-app:latest # Use the same image as your main app
+        command: ["python", "init_db.py"] # Command to run the database initialization script
+        # Removed envFrom and moved all necessary env vars to 'env' for explicit definition
+        env:
+        # Database connection details for init_db.py
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: POSTGRES_USER
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: POSTGRES_PASSWORD
+        - name: POSTGRES_DB
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: POSTGRES_DB
+        - name: DB_HOST # From ConfigMap
+          valueFrom:
+            configMapKeyRef:
+              name: backend-config
+              key: DB_HOST
+        - name: DB_PORT # From ConfigMap
+          valueFrom:
+            configMapKeyRef:
+              name: backend-config
+              key: DB_PORT
+        # Construct DATABASE_URL directly using the values from above.
+        # This is how Flask-SQLAlchemy will expect it.
+        - name: DATABASE_URL
+          value: "postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(POSTGRES_DB)"
+        # Default User Passwords for init_db.py
+        - name: DEFAULT_ADMIN_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: DEFAULT_ADMIN_PASSWORD
+        - name: DEFAULT_INSTRUCTOR_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: DEFAULT_INSTRUCTOR_PASSWORD
+      # --- End Init Containers Section ---
+
+      containers:
+      - name: flask-app
+        image: vinayak4393/flask-tutorial-app:latest # IMPORTANT: Replace with your actual Docker image name and tag
+        ports:
+        - containerPort: 5000
+        envFrom:
+        - configMapRef: # Inject all key-value pairs from backend-config
+            name: backend-config
+        - secretRef: # Inject all key-value pairs from app-secrets
+            name: app-secrets
+        env: # Construct DATABASE_URL using ConfigMap and Secret values
+        - name: DATABASE_URL
+          value: "postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(POSTGRES_DB)"
+        - name: FLASK_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: FLASK_SECRET_KEY
+        # Add readiness and liveness probes for production
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 5000
+          initialDelaySeconds: 15 # Give time for DB init and app startup
+          periodSeconds: 10
+          failureThreshold: 3
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 5000
+          initialDelaySeconds: 30 # Give more time before considering app unhealthy
+          periodSeconds: 15
+          failureThreshold: 3
+---
+# backend-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: flask-backend-service
+  namespace: my-3tier-app
+spec:
+  selector:
+    app: flask-backend
+  ports:
+  - protocol: TCP
+    port: 5000 # Service port
+    targetPort: 5000 # Container port
+    nodePort: 30001 # Choose a port between 30000-32767 for external access
+  type: NodePort # Exposes the service on each Node's IP at a static port
+
