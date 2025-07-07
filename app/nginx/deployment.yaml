@@ -12,11 +12,11 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: nginx-gitops-demo
-  namespace: gitops-demo-ns # Deploy into our GitOps namespace
+  namespace: gitops-demo-ns 
   labels:
     app: nginx-gitops-demo
 spec:
-  replicas: 3 # We'll change this later to demonstrate GitOps
+  replicas: 3 
   selector:
     matchLabels:
       app: nginx-gitops-demo
@@ -27,7 +27,7 @@ spec:
     spec:
       containers:
       - name: nginx-container
-        image: nginx:1.26.0 # We'll update this version later
+        image: nginx:1.26.0 
         ports:
         - containerPort: 80
 ---
